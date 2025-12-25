@@ -25,7 +25,9 @@ load_dotenv()
 API_URL = "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels"
 PROJECT_API_URL = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
-USER_AGENT = "antigravity/1.13.3 Darwin/arm64"
+
+# User agent (loaded from .env)
+USER_AGENT = os.getenv("USER_AGENT", "antigravity/1.13.3 Darwin/arm64")
 
 # Google OAuth credentials (loaded from .env)
 # https://github.com/lbjlaq/Antigravity-Manager/blob/main/src-tauri/src/modules/oauth.rs)
@@ -99,19 +101,24 @@ def ensure_fresh_token(account: dict) -> str:
 
     # Token needs refresh
     new_token_data = refresh_access_token(refresh_token)
+    new_expiry = now + new_token_data["expires_in"]
 
     # Update account dict
     if "token" in account:
         token_data = account["token"]
         token_data["access_token"] = new_token_data["access_token"]
         token_data["expires_in"] = new_token_data["expires_in"]
-        token_data["expiry_timestamp"] = now + new_token_data["expires_in"]
+        token_data["expiry_timestamp"] = new_expiry
         token_data["token_type"] = new_token_data.get("token_type", "Bearer")
     else:
         account["access_token"] = new_token_data["access_token"]
         account["expires_in"] = new_token_data["expires_in"]
         account["timestamp"] = now * 1000
         account["type"] = "antigravity"
+
+    # Update top-level access_token and expired fields
+    account["access_token"] = new_token_data["access_token"]
+    account["expired"] = new_expiry
 
     # Write updated account back to file
     try:

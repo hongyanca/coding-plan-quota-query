@@ -13,9 +13,9 @@ A FastAPI server for querying Google Cloud Code AI model quotas. Monitor your Ge
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.13+
 - [uv](https://github.com/astral-sh/uv) package manager
-- Antigravity account JSON file (exported from Antigravity app)
+- Antigravity account JSON file
 
 ### Installation
 
@@ -58,7 +58,7 @@ PORT=8000
 uv run python main.py
 ```
 
-The server will start at `http://127.0.0.1:8000`.
+The server will start at `http://0.0.0.0:8000`.
 
 ## API Endpoints
 
@@ -136,6 +136,7 @@ antigravity-quota/
 | `CLIENT_SECRET` | Yes | - | Google OAuth Client Secret |
 | `ACCOUNT_FILE` | No | `antigravity.json` | Path to account JSON file |
 | `PORT` | No | `8000` | Server port |
+| `USER_AGENT` | No | `antigravity/1.13.3 Darwin/arm64` | HTTP User-Agent header |
 
 ## Docker
 
