@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Project specific
+.env
+*.json
+*.md
+*.toml
+uv.lock
+
+# Keep these (use ! prefix to negate)
+!pyproject.toml
+!uv.lock
