@@ -51,7 +51,7 @@ ACCOUNT_FILE=antigravity.json
 PORT=8000
 ```
 
-3. Place your Antigravity account JSON file in the project root (or update `ACCOUNT_FILE` path).
+3. Place your Antigravity account JSON file in the project root (or update `ACCOUNT_FILE` path). https://github.com/router-for-me/CLIProxyAPI https://help.router-for.me/configuration/provider/antigravity.html can get the `.json` file for authentication.
 
 ### Running the Server
 
