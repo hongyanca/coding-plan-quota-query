@@ -114,6 +114,28 @@ def _get_quota_data():
     return get_quota(access_token, project_id)
 
 
+@app.get("/quota")
+async def get_quota_endpoints():
+    """Return available quota API endpoints."""
+    return {
+        "message": "Welcome to the Antigravity Quota API",
+        "endpoints": {
+            "/quota": "This endpoint - lists all available endpoints",
+            "/quota/overview": "Quick summary (e.g., 'Pro 95% | Flash 90% | Claude 80%')",
+            "/quota/all": "All models with percentage and relative reset time",
+            "/quota/pro": "Gemini 3 Pro models (high, image, low)",
+            "/quota/flash": "Gemini 3 Flash model",
+            "/quota/claude": "Claude 4.5 models (opus, sonnet, thinking)",
+        },
+    }
+
+
+@app.get("/quota/usage")
+async def get_quota_usage():
+    """Return available quota API endpoints (alias for /quota)."""
+    return await get_quota_endpoints()
+
+
 @app.get("/quota/overview")
 async def get_quota_overview():
     """Get quick quota summary as string (e.g., 'Pro 95% | Flash 90% | Claude 80%')."""

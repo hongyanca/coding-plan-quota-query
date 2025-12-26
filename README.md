@@ -65,6 +65,8 @@ The server will start at `http://0.0.0.0:8000`.
 
 | Endpoint | Description |
 |----------|-------------|
+| `GET /quota` | List all available endpoints |
+| `GET /quota/usage` | Alias for `/quota` |
 | `GET /quota/overview` | Quick summary string (e.g., "Pro 95% \| Flash 90% \| Claude 80%") |
 | `GET /quota/all` | All Gemini and Claude models |
 | `GET /quota/pro` | Gemini 3 Pro models (high, image, low) |

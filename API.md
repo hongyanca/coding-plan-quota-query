@@ -44,7 +44,42 @@ cp .env.example .env
 
 ## Endpoints
 
-### 1. Get Quota Overview
+### 1. List Available Endpoints
+
+Get a list of all available quota API endpoints.
+
+```http
+GET /quota
+GET /quota/usage
+```
+
+> **Note**: `/quota/usage` is an alias for `/quota`.
+
+**Response:**
+
+```json
+{
+  "message": "Welcome to the Antigravity Quota API",
+  "endpoints": {
+    "/quota": "This endpoint - lists all available endpoints",
+    "/quota/overview": "Quick summary (e.g., 'Pro 95% | Flash 90% | Claude 80%')",
+    "/quota/all": "All models with percentage and relative reset time",
+    "/quota/pro": "Gemini 3 Pro models (high, image, low)",
+    "/quota/flash": "Gemini 3 Flash model",
+    "/quota/claude": "Claude 4.5 models (opus, sonnet, thinking)"
+  }
+}
+```
+
+**Example:**
+
+```bash
+curl http://127.0.0.1:8000/quota
+```
+
+---
+
+### 2. Get Quota Overview
 
 Get a quick summary of quota percentages.
 
@@ -56,7 +91,7 @@ GET /quota/overview
 
 ```json
 {
-  "overview": "Pro 95% | Flash 90% | Claude 80%"
+  "overview": "Pro 100% | Flash 100% | Claude 81%"
 }
 ```
 
@@ -68,7 +103,7 @@ curl http://127.0.0.1:8000/quota/overview
 
 ---
 
-### 2. Get All Models
+### 3. Get All Models
 
 Get quota information for all Gemini and Claude models.
 
@@ -84,18 +119,72 @@ GET /quota/all
     "models": [
       {
         "name": "claude-opus-4-5-thinking",
+        "percentage": 81,
+        "reset_time": "2025-12-26T07:15:53Z",
+        "reset_time_relative": "2h 31m"
+      },
+      {
+        "name": "claude-sonnet-4-5",
+        "percentage": 81,
+        "reset_time": "2025-12-26T07:15:53Z",
+        "reset_time_relative": "2h 31m"
+      },
+      {
+        "name": "claude-sonnet-4-5-thinking",
+        "percentage": 81,
+        "reset_time": "2025-12-26T07:15:53Z",
+        "reset_time_relative": "2h 31m"
+      },
+      {
+        "name": "gemini-2.5-flash",
         "percentage": 99,
-        "reset_time": "2025-12-25T15:13:37Z",
-        "reset_time_relative": "4h 28m"
+        "reset_time": "2025-12-26T09:27:46Z",
+        "reset_time_relative": "4h 43m"
+      },
+      {
+        "name": "gemini-2.5-flash-lite",
+        "percentage": 99,
+        "reset_time": "2025-12-26T09:39:31Z",
+        "reset_time_relative": "4h 54m"
+      },
+      {
+        "name": "gemini-2.5-flash-thinking",
+        "percentage": 99,
+        "reset_time": "2025-12-26T09:27:46Z",
+        "reset_time_relative": "4h 43m"
+      },
+      {
+        "name": "gemini-2.5-pro",
+        "percentage": 100,
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
+      },
+      {
+        "name": "gemini-3-flash",
+        "percentage": 100,
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
       },
       {
         "name": "gemini-3-pro-high",
         "percentage": 100,
-        "reset_time": "2025-12-25T15:21:27Z",
-        "reset_time_relative": "4h 35m"
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
+      },
+      {
+        "name": "gemini-3-pro-image",
+        "percentage": 100,
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
+      },
+      {
+        "name": "gemini-3-pro-low",
+        "percentage": 100,
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
       }
     ],
-    "last_updated": 1766658087,
+    "last_updated": 1766724284,
     "is_forbidden": false
   }
 }
@@ -109,7 +198,7 @@ curl http://127.0.0.1:8000/quota/all | jq '.quota.models[].name'
 
 ---
 
-### 3. Get Gemini 3 Pro Models
+### 4. Get Gemini 3 Pro Models
 
 Get quota for Gemini 3 Pro variants (high, image, low).
 
@@ -126,23 +215,23 @@ GET /quota/pro
       {
         "name": "gemini-3-pro-high",
         "percentage": 100,
-        "reset_time": "2025-12-25T15:21:27Z",
-        "reset_time_relative": "4h 35m"
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
       },
       {
         "name": "gemini-3-pro-image",
         "percentage": 100,
-        "reset_time": "2025-12-25T15:21:27Z",
-        "reset_time_relative": "4h 35m"
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
       },
       {
         "name": "gemini-3-pro-low",
         "percentage": 100,
-        "reset_time": "2025-12-25T15:21:27Z",
-        "reset_time_relative": "4h 35m"
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
       }
     ],
-    "last_updated": 1766658087,
+    "last_updated": 1766724285,
     "is_forbidden": false
   }
 }
@@ -156,7 +245,7 @@ curl http://127.0.0.1:8000/quota/pro | jq '.quota.models[] | {name, percentage}'
 
 ---
 
-### 4. Get Gemini 3 Flash Model
+### 5. Get Gemini 3 Flash Model
 
 Get quota for Gemini 3 Flash model.
 
@@ -173,11 +262,11 @@ GET /quota/flash
       {
         "name": "gemini-3-flash",
         "percentage": 100,
-        "reset_time": "2025-12-25T15:21:27Z",
-        "reset_time_relative": "4h 35m"
+        "reset_time": "2025-12-26T09:44:43Z",
+        "reset_time_relative": "4h 59m"
       }
     ],
-    "last_updated": 1766658087,
+    "last_updated": 1766724286,
     "is_forbidden": false
   }
 }
@@ -191,7 +280,7 @@ curl http://127.0.0.1:8000/quota/flash | jq '.quota.models[0]'
 
 ---
 
-### 5. Get Claude 4.5 Models
+### 6. Get Claude 4.5 Models
 
 Get quota for Claude 4.5 models.
 
@@ -207,24 +296,24 @@ GET /quota/claude
     "models": [
       {
         "name": "claude-opus-4-5-thinking",
-        "percentage": 99,
-        "reset_time": "2025-12-25T15:13:37Z",
-        "reset_time_relative": "4h 28m"
+        "percentage": 81,
+        "reset_time": "2025-12-26T07:15:53Z",
+        "reset_time_relative": "2h 31m"
       },
       {
         "name": "claude-sonnet-4-5",
-        "percentage": 99,
-        "reset_time": "2025-12-25T15:13:37Z",
-        "reset_time_relative": "4h 28m"
+        "percentage": 81,
+        "reset_time": "2025-12-26T07:15:53Z",
+        "reset_time_relative": "2h 31m"
       },
       {
         "name": "claude-sonnet-4-5-thinking",
-        "percentage": 99,
-        "reset_time": "2025-12-25T15:13:37Z",
-        "reset_time_relative": "4h 28m"
+        "percentage": 81,
+        "reset_time": "2025-12-26T07:15:53Z",
+        "reset_time_relative": "2h 31m"
       }
     ],
-    "last_updated": 1766658087,
+    "last_updated": 1766724287,
     "is_forbidden": false
   }
 }
