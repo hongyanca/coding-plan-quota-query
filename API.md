@@ -63,6 +63,7 @@ GET /quota/usage
   "endpoints": {
     "/quota": "This endpoint - lists all available endpoints",
     "/quota/overview": "Quick summary (e.g., 'Pro 95% | Flash 90% | Claude 80%')",
+    "/quota/status": "Terminal status with nerdfont icons and colors",
     "/quota/all": "All models with percentage and relative reset time",
     "/quota/pro": "Gemini 3 Pro models (high, image, low)",
     "/quota/flash": "Gemini 3 Flash model",
@@ -99,6 +100,41 @@ GET /quota/overview
 
 ```bash
 curl http://127.0.0.1:8000/quota/overview
+```
+
+---
+
+### 2b. Get Quota Status (Terminal)
+
+Get a terminal-friendly status with nerdfont icons and ANSI colors.
+
+```http
+GET /quota/status
+```
+
+**Response:**
+
+```json
+{
+  "overview": "\u001b[32m󰊭\u001b[0m |  \u001b[33m45%\u001b[0m 2h18m | 󰛄 \u001b[31m5%\u001b[0m 1h30m"
+}
+```
+
+**Features:**
+- **Nerdfont icons**: 󰊭 (Gemini Pro),  (Flash), 󰛄 (Claude)
+- **Color-coded output**:
+  - 100%: Green colored icon only (no percentage shown)
+  - 50-99%: Icon + green percentage + reset time
+  - 20-49%: Icon + yellow percentage + reset time
+  - 1-19%: Icon + red percentage + reset time
+  - 0%: Red colored icon only (no percentage shown)
+- **Compact time format**: `2h18m` (no space, omits zero values)
+
+**Example:**
+
+```bash
+# Display with colors in terminal
+curl -s http://127.0.0.1:8000/quota/status | jq -r '.overview' | xargs -0 printf "%b\n"
 ```
 
 ---

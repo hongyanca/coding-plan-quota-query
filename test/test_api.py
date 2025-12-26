@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 from src.api import (
     app,
     filter_models,
+    format_percentage_with_color,
     format_quota,
+    format_time_compact,
     format_time_remaining,
 )
 
@@ -43,6 +45,79 @@ class TestFormatTimeRemaining:
         """Test that invalid time string returns empty string."""
         result = format_time_remaining("invalid-time")
         assert result == ""
+
+
+class TestFormatTimeCompact:
+    """Tests for format_time_compact function."""
+
+    def test_hours_and_minutes(self):
+        """Test compact format with hours and minutes."""
+        future = datetime.now(timezone.utc) + timedelta(hours=2, minutes=18)
+        result = format_time_compact(future.isoformat())
+        assert result in ("2h17m", "2h18m")
+
+    def test_only_hours(self):
+        """Test compact format with only hours (0 minutes)."""
+        future = datetime.now(timezone.utc) + timedelta(hours=3, seconds=30)
+        result = format_time_compact(future.isoformat())
+        assert result == "3h"
+
+    def test_only_minutes(self):
+        """Test compact format with only minutes (0 hours)."""
+        future = datetime.now(timezone.utc) + timedelta(minutes=45, seconds=30)
+        result = format_time_compact(future.isoformat())
+        assert result in ("45m", "44m")
+
+    def test_past_time_returns_empty(self):
+        """Test that past time returns empty string."""
+        past = datetime.now(timezone.utc) - timedelta(hours=1)
+        result = format_time_compact(past.isoformat())
+        assert result == ""
+
+    def test_invalid_time_returns_empty(self):
+        """Test that invalid time string returns empty string."""
+        result = format_time_compact("invalid-time")
+        assert result == ""
+
+
+class TestFormatPercentageWithColor:
+    """Tests for format_percentage_with_color function."""
+
+    # ANSI codes for verification
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
+    RESET = "\033[0m"
+
+    def test_100_percent_green_dot(self):
+        """Test 100% returns green dot symbol."""
+        result = format_percentage_with_color(100)
+        assert result == f"{self.GREEN}●{self.RESET}"
+        assert "100%" not in result
+
+    def test_0_percent_red_dot(self):
+        """Test 0% returns red dot symbol."""
+        result = format_percentage_with_color(0)
+        assert result == f"{self.RED}●{self.RESET}"
+        assert "0%" not in result
+
+    def test_50_to_99_green_percentage(self):
+        """Test 50-99% returns green colored percentage."""
+        for pct in [50, 75, 99]:
+            result = format_percentage_with_color(pct)
+            assert result == f"{self.GREEN}{pct}%{self.RESET}"
+
+    def test_20_to_49_yellow_percentage(self):
+        """Test 20-49% returns yellow colored percentage."""
+        for pct in [20, 35, 49]:
+            result = format_percentage_with_color(pct)
+            assert result == f"{self.YELLOW}{pct}%{self.RESET}"
+
+    def test_1_to_19_red_percentage(self):
+        """Test 1-19% returns red colored percentage."""
+        for pct in [1, 10, 19]:
+            result = format_percentage_with_color(pct)
+            assert result == f"{self.RED}{pct}%{self.RESET}"
 
 
 class TestFormatQuota:
@@ -241,3 +316,149 @@ class TestAPIEndpoints:
         data = response.json()
         assert len(data["quota"]["models"]) == 1
         assert "claude" in data["quota"]["models"][0]["name"]
+
+
+class TestQuotaStatusEndpoint:
+    """Tests for /quota/status endpoint with various quota scenarios."""
+
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
+    RESET = "\033[0m"
+
+    # Nerdfont icons
+    GEMINI_ICON = "󰊭"
+    FLASH_ICON = ""
+    CLAUDE_ICON = "󰛄"
+
+    @pytest.fixture
+    def client(self):
+        """Create test client."""
+        return TestClient(app)
+
+    def _make_quota_data(self, pro_pct, flash_pct, claude_pct):
+        """Helper to create mock quota data with specific percentages."""
+        future = datetime.now(timezone.utc) + timedelta(hours=2, minutes=18)
+        reset_time = future.isoformat()
+        return {
+            "models": {
+                "gemini-3-pro-high": {
+                    "quotaInfo": {
+                        "remainingFraction": pro_pct / 100,
+                        "resetTime": reset_time,
+                    }
+                },
+                "gemini-3-flash": {
+                    "quotaInfo": {
+                        "remainingFraction": flash_pct / 100,
+                        "resetTime": reset_time,
+                    }
+                },
+                "claude-sonnet-4-5": {
+                    "quotaInfo": {
+                        "remainingFraction": claude_pct / 100,
+                        "resetTime": reset_time,
+                    }
+                },
+            }
+        }
+
+    @patch("src.api._get_quota_data")
+    def test_all_100_percent(self, mock_get_quota, client):
+        """Test all models at 100% - green icons, no time."""
+        mock_get_quota.return_value = self._make_quota_data(100, 100, 100)
+
+        response = client.get("/quota/status")
+
+        assert response.status_code == 200
+        overview = response.json()["overview"]
+        # Should have green colored icons for all
+        assert f"{self.GREEN}{self.GEMINI_ICON}{self.RESET}" in overview
+        assert f"{self.GREEN}{self.FLASH_ICON}{self.RESET}" in overview
+        assert f"{self.GREEN}{self.CLAUDE_ICON}{self.RESET}" in overview
+        # Should not have percentage text
+        assert "100%" not in overview
+        # Check no time format present - strip ANSI codes first
+        import re
+        clean_overview = re.sub(r"\x1b\[[0-9;]*m", "", overview)
+        assert not re.search(r"\d+h", clean_overview)
+        assert not re.search(r"\d+m", clean_overview)
+
+    @patch("src.api._get_quota_data")
+    def test_all_0_percent(self, mock_get_quota, client):
+        """Test all models at 0% - red icons."""
+        mock_get_quota.return_value = self._make_quota_data(0, 0, 0)
+
+        response = client.get("/quota/status")
+
+        assert response.status_code == 200
+        overview = response.json()["overview"]
+        # Should have red colored icons for all
+        assert f"{self.RED}{self.GEMINI_ICON}{self.RESET}" in overview
+        assert f"{self.RED}{self.FLASH_ICON}{self.RESET}" in overview
+        assert f"{self.RED}{self.CLAUDE_ICON}{self.RESET}" in overview
+        # Should not have "0%" text
+        assert "0%" not in overview
+
+    @patch("src.api._get_quota_data")
+    def test_mixed_quotas_green_range(self, mock_get_quota, client):
+        """Test models in 50-99% range - green percentages with time."""
+        mock_get_quota.return_value = self._make_quota_data(75, 90, 55)
+
+        response = client.get("/quota/status")
+
+        assert response.status_code == 200
+        overview = response.json()["overview"]
+        # Should have green percentages
+        assert f"{self.GREEN}75%{self.RESET}" in overview
+        assert f"{self.GREEN}90%{self.RESET}" in overview
+        assert f"{self.GREEN}55%{self.RESET}" in overview
+        # Should have time (2h18m or 2h17m)
+        assert "2h" in overview
+
+    @patch("src.api._get_quota_data")
+    def test_yellow_range(self, mock_get_quota, client):
+        """Test models in 20-49% range - yellow percentages."""
+        mock_get_quota.return_value = self._make_quota_data(35, 45, 25)
+
+        response = client.get("/quota/status")
+
+        assert response.status_code == 200
+        overview = response.json()["overview"]
+        # Should have yellow percentages
+        assert f"{self.YELLOW}35%{self.RESET}" in overview
+        assert f"{self.YELLOW}45%{self.RESET}" in overview
+        assert f"{self.YELLOW}25%{self.RESET}" in overview
+
+    @patch("src.api._get_quota_data")
+    def test_red_range(self, mock_get_quota, client):
+        """Test models in 1-19% range - red percentages."""
+        mock_get_quota.return_value = self._make_quota_data(5, 15, 1)
+
+        response = client.get("/quota/status")
+
+        assert response.status_code == 200
+        overview = response.json()["overview"]
+        # Should have red percentages
+        assert f"{self.RED}5%{self.RESET}" in overview
+        assert f"{self.RED}15%{self.RESET}" in overview
+        assert f"{self.RED}1%{self.RESET}" in overview
+
+    @patch("src.api._get_quota_data")
+    def test_mixed_all_ranges(self, mock_get_quota, client):
+        """Test mixed quotas across all color ranges."""
+        mock_get_quota.return_value = self._make_quota_data(100, 45, 5)
+
+        response = client.get("/quota/status")
+
+        assert response.status_code == 200
+        overview = response.json()["overview"]
+        # Pro at 100% - green icon, no time
+        assert f"{self.GREEN}{self.GEMINI_ICON}{self.RESET}" in overview
+        # Flash at 45% - icon + yellow percentage with time
+        assert f"{self.YELLOW}45%{self.RESET}" in overview
+        assert self.FLASH_ICON in overview
+        # Claude at 5% - icon + red percentage with time
+        assert f"{self.RED}5%{self.RESET}" in overview
+        assert self.CLAUDE_ICON in overview
+

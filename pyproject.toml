@@ -5,12 +5,10 @@ description = "API Server for Antigravity Quota Management"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi[standard]>=0.127.0",
-    "httpx>=0.28.1",
-    "python-dotenv>=1.2.1",
+  "fastapi[standard]>=0.127.1",
+  "httpx>=0.28.1",
+  "python-dotenv>=1.2.1",
 ]
 
 [dependency-groups]
-dev = [
-    "pytest>=9.0.0",
-]
+dev = ["pytest>=9.0.0"]

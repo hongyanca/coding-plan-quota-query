@@ -122,6 +122,7 @@ async def get_quota_endpoints():
         "endpoints": {
             "/quota": "This endpoint - lists all available endpoints",
             "/quota/overview": "Quick summary (e.g., 'Pro 95% | Flash 90% | Claude 80%')",
+            "/quota/status": "Terminal status with nerdfont icons and colors (e.g., '󰊭 90% |  99% 2h18m | 󰛄 80%')",
             "/quota/all": "All models with percentage and relative reset time",
             "/quota/pro": "Gemini 3 Pro models (high, image, low)",
             "/quota/flash": "Gemini 3 Flash model",
@@ -134,6 +135,51 @@ async def get_quota_endpoints():
 async def get_quota_usage():
     """Return available quota API endpoints (alias for /quota)."""
     return await get_quota_endpoints()
+
+
+def format_percentage_with_color(pct: int) -> str:
+    """Format percentage with ANSI color codes based on value."""
+    # ANSI color codes
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
+    RESET = "\033[0m"
+
+    if pct == 100:
+        return f"{GREEN}●{RESET}"
+    elif pct >= 50:
+        return f"{GREEN}{pct}%{RESET}"
+    elif pct >= 20:
+        return f"{YELLOW}{pct}%{RESET}"
+    elif pct >= 1:
+        return f"{RED}{pct}%{RESET}"
+    else:
+        return f"{RED}●{RESET}"
+
+
+def format_time_compact(reset_time: str) -> str:
+    """Calculate time remaining until reset in compact 'XhYm' format."""
+    try:
+        reset_dt = datetime.fromisoformat(reset_time.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        delta = reset_dt - now
+
+        if delta.total_seconds() <= 0:
+            return ""
+
+        hours = int(delta.total_seconds() // 3600)
+        minutes = int((delta.total_seconds() % 3600) // 60)
+
+        if hours == 0 and minutes == 0:
+            return ""
+        elif hours == 0:
+            return f"{minutes}m"
+        elif minutes == 0:
+            return f"{hours}h"
+        else:
+            return f"{hours}h{minutes}m"
+    except Exception:
+        return ""
 
 
 @app.get("/quota/overview")
@@ -155,6 +201,60 @@ async def get_quota_overview():
     claude_pct = claude_models[0]["percentage"] if claude_models else 0
 
     return {"overview": f"Pro {pro_pct}% | Flash {flash_pct}% | Claude {claude_pct}%"}
+
+
+@app.get("/quota/status")
+async def get_quota_status():
+    """Get terminal-friendly quota status with nerdfont symbols and colors."""
+    quota_raw = _get_quota_data()
+    quota_formatted = format_quota(quota_raw, show_relative=True)
+
+    # ANSI color codes
+    GREEN = "\033[32m"
+    RED = "\033[31m"
+    RESET = "\033[0m"
+
+    # Nerdfont symbols
+    GEMINI_ICON = "G"  # nf-md-google
+    FLASH_ICON = "F"   # nf-md-flash
+    CLAUDE_ICON = "󰛄"  # nf-md-robot
+
+    def format_model_status(icon: str, pct: int, reset_time: str) -> str:
+        """Format a model's status with colored icon or percentage."""
+        if pct == 100:
+            # 100%: green icon only
+            return f"{GREEN}{icon}{RESET}"
+        elif pct == 0:
+            # 0%: red icon only
+            return f"{RED}{icon}{RESET}"
+        else:
+            # 1-99%: icon + colored percentage + time
+            pct_str = format_percentage_with_color(pct)
+            time_str = format_time_compact(reset_time)
+            if time_str:
+                return f"{icon} {pct_str} {time_str}"
+            return f"{icon} {pct_str}"
+
+    # Get Pro (gemini-3-pro-high)
+    pro_models = [m for m in quota_formatted["models"] if "gemini-3-pro-high" in m["name"].lower()]
+    pro_pct = pro_models[0]["percentage"] if pro_models else 0
+    pro_reset = pro_models[0].get("reset_time", "") if pro_models else ""
+    pro_str = format_model_status(GEMINI_ICON, pro_pct, pro_reset)
+
+    # Get Flash (gemini-3-flash)
+    flash_models = [m for m in quota_formatted["models"] if "gemini-3-flash" in m["name"].lower()]
+    flash_pct = flash_models[0]["percentage"] if flash_models else 0
+    flash_reset = flash_models[0].get("reset_time", "") if flash_models else ""
+    flash_str = format_model_status(FLASH_ICON, flash_pct, flash_reset)
+
+    # Get Claude (claude-sonnet-4-5)
+    claude_models = [m for m in quota_formatted["models"] if m["name"].lower() == "claude-sonnet-4-5"]
+    claude_pct = claude_models[0]["percentage"] if claude_models else 0
+    claude_reset = claude_models[0].get("reset_time", "") if claude_models else ""
+    claude_str = format_model_status(CLAUDE_ICON, claude_pct, claude_reset)
+
+    overview = f"{pro_str} | {flash_str} | {claude_str}"
+    return {"overview": overview}
 
 
 @app.get("/quota/all")
