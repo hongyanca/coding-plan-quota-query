@@ -22,6 +22,7 @@ from .cloudcode_client import (
     load_account,
     normalize_account,
 )
+from .constants import QUOTA_CRITICAL, QUOTA_FULL, QUOTA_GOOD, QUOTA_WARNING
 
 
 def _get_version() -> str:
@@ -145,13 +146,13 @@ def format_percentage_with_color(pct: int) -> str:
     RED = "\033[31m"
     RESET = "\033[0m"
 
-    if pct == 100:
+    if pct == QUOTA_FULL:
         return f"{GREEN}●{RESET}"
-    elif pct >= 50:
+    elif pct >= QUOTA_GOOD:
         return f"{GREEN}{pct}%{RESET}"
-    elif pct >= 20:
+    elif pct >= QUOTA_WARNING:
         return f"{YELLOW}{pct}%{RESET}"
-    elif pct >= 1:
+    elif pct >= QUOTA_CRITICAL:
         return f"{RED}{pct}%{RESET}"
     else:
         return f"{RED}●{RESET}"
@@ -221,7 +222,7 @@ async def get_quota_status():
 
     def format_model_status(icon: str, pct: int, reset_time: str) -> str:
         """Format a model's status with colored icon or percentage."""
-        if pct == 100:
+        if pct == QUOTA_FULL:
             # 100%: green icon only
             return f"{GREEN}{icon}{RESET}"
         elif pct == 0:

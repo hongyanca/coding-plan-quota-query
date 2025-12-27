@@ -38,8 +38,8 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
-COPY main.py pyproject.toml ./
-COPY src/ ./src/
+COPY --chown=appuser:appgroup main.py pyproject.toml ./
+COPY --chown=appuser:appgroup src/ ./src/
 
 # Set environment variables
 ENV PATH="/app/.venv/bin:$PATH" \

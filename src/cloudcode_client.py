@@ -19,6 +19,7 @@ from .config import (
     TOKEN_URL,
     USER_AGENT,
 )
+from .constants import SECONDS_PER_MINUTE, TOKEN_REFRESH_BUFFER_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def ensure_fresh_token(account: dict) -> str:
         raise ValueError("Missing access_token or refresh_token")
 
     now = int(time.time())
-    if expiry_timestamp and expiry_timestamp > now + 300:
+    if expiry_timestamp and expiry_timestamp > now + TOKEN_REFRESH_BUFFER_SECONDS:
         logger.info("Token is fresh, no need to refresh")
         return access_token
 
@@ -141,7 +142,7 @@ def get_project_id(access_token: str) -> str | None:
 
 # Thread-safe cache for quota data
 # TTL is set dynamically based on QUERY_DEBOUNCE config
-_quota_cache: TTLCache = TTLCache(maxsize=1, ttl=QUERY_DEBOUNCE * 60)
+_quota_cache: TTLCache = TTLCache(maxsize=1, ttl=QUERY_DEBOUNCE * SECONDS_PER_MINUTE)
 _quota_cache_lock = threading.Lock()
 
 
