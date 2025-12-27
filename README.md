@@ -203,6 +203,10 @@ Then run:
 docker compose up -d
 ```
 
+## AI Assistance Disclaimer
+
+This project was developed with assistance from AI/LLMs (including Claude Code, Google Antigravity, and related tools), supervised by a human who occasionally knew what he was doing.
+
 ## License
 
 MIT
