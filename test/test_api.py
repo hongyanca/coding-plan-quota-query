@@ -327,8 +327,8 @@ class TestQuotaStatusEndpoint:
     RESET = "\033[0m"
 
     # Nerdfont icons
-    GEMINI_ICON = "󰊭"
-    FLASH_ICON = ""
+    GEMINI_ICON = "G"
+    FLASH_ICON = "F"
     CLAUDE_ICON = "󰛄"
 
     @pytest.fixture

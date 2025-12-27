@@ -2,10 +2,12 @@
 
 import json
 import logging
+import threading
 import time
 from datetime import datetime
 
 import httpx
+from cachetools import TTLCache
 
 from .config import (
     ACCOUNT_FILE,
@@ -130,22 +132,28 @@ def get_project_id(access_token: str) -> str | None:
         if response.status_code == 200:
             data = response.json()
             return data.get("cloudaicompanionProject")
-    except Exception:
-        pass
+        logger.warning("Failed to get project ID: HTTP %d", response.status_code)
+    except httpx.RequestError as e:
+        logger.warning("Failed to get project ID: %s", e)
 
     return None
 
 
+# Thread-safe cache for quota data
+# TTL is set dynamically based on QUERY_DEBOUNCE config
+_quota_cache: TTLCache = TTLCache(maxsize=1, ttl=QUERY_DEBOUNCE * 60)
+_quota_cache_lock = threading.Lock()
+
+
 def get_quota(access_token: str, project_id: str | None = None) -> dict:
     """Fetch quota information from the CloudCode API with caching."""
-    global _quota_cache, _quota_cache_time
+    cache_key = "quota"
 
-    # Check if we have a valid cached response
-    now = time.time()
-    cache_max_age = QUERY_DEBOUNCE * 60  # Convert minutes to seconds
-    if _quota_cache is not None and (now - _quota_cache_time) < cache_max_age:
-        logger.info("Returning cached quota data (age: %.0fs)", now - _quota_cache_time)
-        return _quota_cache
+    # Thread-safe cache check
+    with _quota_cache_lock:
+        if cache_key in _quota_cache:
+            logger.info("Returning cached quota data")
+            return _quota_cache[cache_key]
 
     # Fetch fresh data from API
     logger.info("Fetching fresh quota data from googleapis.com")
@@ -162,14 +170,9 @@ def get_quota(access_token: str, project_id: str | None = None) -> dict:
     response.raise_for_status()
     result = response.json()
 
-    # Cache the result
-    _quota_cache = result
-    _quota_cache_time = now
+    # Thread-safe cache update
+    with _quota_cache_lock:
+        _quota_cache[cache_key] = result
     logger.info("Cached quota data for %d minute(s)", QUERY_DEBOUNCE)
 
     return result
-
-
-# Module-level cache for quota data
-_quota_cache: dict | None = None
-_quota_cache_time: float = 0

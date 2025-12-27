@@ -1,3 +1,6 @@
+# Docker build script
+build.sh
+
 # Token files
 *.json
 .env
