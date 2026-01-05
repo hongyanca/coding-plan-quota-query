@@ -53,7 +53,7 @@ async def query_zai_endpoint(url: str, auth_token: str, query_params: str = "") 
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail=f"Z.ai API error: {e.response.text}")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to query Z.ai API: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to query Z.ai API: {e!s}")
 
 
 def get_base_domain(base_url: str) -> tuple[str, str]:
@@ -128,7 +128,6 @@ def format_glm_quota(quota_limit_data: dict) -> dict:
             models.append({"name": "glm", "percentage": 100 - percentage})
         elif limit_type == "MCP usage(1 Month)":
             # MCP limit: show remaining percentage
-            current_usage = limit.get("currentUsage", 0)
             total = limit.get("total", 100)
             usage_details = limit.get("usageDetails", [])
 
@@ -144,7 +143,7 @@ def format_glm_quota(quota_limit_data: dict) -> dict:
                 if model_code == "zread":
                     continue
 
-                tool_percentage = int((usage / total * 100)) if total > 0 else 0
+                tool_percentage = int(usage / total * 100) if total > 0 else 0
                 models.append({"name": f"glm-coding-plan-{model_code}", "percentage": 100 - tool_percentage})
 
     return {
@@ -171,7 +170,7 @@ async def get_glm_quota() -> dict:
         )
 
     # Get platform and base domain
-    platform, base_domain = get_base_domain(base_url)
+    _, base_domain = get_base_domain(base_url)
 
     # Query quota limit endpoint
     quota_limit_url = f"{base_domain}/api/monitor/usage/quota/limit"
